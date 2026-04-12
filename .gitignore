@@ -1,5 +1,6 @@
-# Environment variables (contains passwords)
+# Environment variables and generated scripts (contain passwords)
 .env
+reboot_fritzbox.sh
 
 # Python
 __pycache__/

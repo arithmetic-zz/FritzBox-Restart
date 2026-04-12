@@ -1,36 +1,22 @@
 #!/usr/bin/env python3
 """
-FritzBox Reboot Script via Playwright.
+FritzBox Reboot - Main Script.
 
-Reads credentials from a .env file and performs a reboot of the
-FritzBox router through its web interface.
+Provides a choice between two reboot methods:
+  - API (TR-064): Lightweight, no browser needed
+  - Web (Playwright): Browser automation through the web interface
 
-SAFETY: Only the "FRITZ!Box neu starten" card and the "Neu starten"
-confirmation button are ever clicked. No other buttons (factory reset,
-backup, restore, etc.) are touched under any circumstances.
-
-Requirements:
-    pip install playwright python-dotenv
-    playwright install chromium
+Usage:
+    python3 fritzbox_reboot.py              # Interactive method selection
+    python3 fritzbox_reboot.py --method api  # Use TR-064 API directly
+    python3 fritzbox_reboot.py --method web  # Use Playwright directly
 """
 
-import os
+import argparse
 import sys
-import time
-from pathlib import Path
-from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-VERSION = "1.0"
+VERSION = "2.0"
 TESTED_FRITZOS = "8.21"
-
-# Load .env from the same directory as this script
-env_path = Path(__file__).parent / ".env"
-load_dotenv(dotenv_path=env_path)
-
-FRITZBOX_URL = os.getenv("FRITZBOX_URL", "http://fritz.box")
-FRITZBOX_USERNAME = os.getenv("FRITZBOX_USERNAME", "")
-FRITZBOX_PASSWORD = os.getenv("FRITZBOX_PASSWORD", "")
 
 
 def print_header():
@@ -42,118 +28,87 @@ def print_header():
     print()
 
 
-def step(msg: str):
-    print(f"  -> {msg}")
+def select_method() -> str:
+    """Show interactive menu and return the chosen method."""
+    print("  Reboot method:")
+    print("    [1] API  (TR-064, lightweight, no browser needed)")
+    print("    [2] Web  (Playwright, browser automation)")
+    print()
+    choice = input("  Select method (1/2): ").strip()
+    if choice == "1":
+        return "api"
+    elif choice == "2":
+        return "web"
+    else:
+        print(f"\n  [ERROR] Invalid choice: '{choice}'")
+        sys.exit(1)
 
 
-def reboot_fritzbox():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(ignore_https_errors=True)
-        page = context.new_page()
-        page.set_default_timeout(30000)
-
-        # --- Login ---
-        step(f"Connecting to {FRITZBOX_URL} ...")
-        page.goto(FRITZBOX_URL)
-        page.wait_for_load_state("networkidle")
-
-        step("Logging in ...")
-        username_field = page.locator('input[name="username"], #uiViewUser input[type="text"]')
-        if FRITZBOX_USERNAME and username_field.count() > 0:
-            username_field.first.fill(FRITZBOX_USERNAME)
-
-        password_field = page.locator('input[type="password"]')
-        password_field.first.fill(FRITZBOX_PASSWORD)
-
-        login_button = page.locator('button[type="submit"], #submitLoginBtn, button:has-text("Anmelden")')
-        login_button.first.click()
-
-        page.wait_for_load_state("networkidle")
-        time.sleep(3)
-
-        if page.locator('input[type="password"]').count() > 0:
-            print("\n  [ERROR] Login failed. Please check your password.")
-            browser.close()
-            sys.exit(1)
-
-        step("Login successful.")
-
-        # --- Navigate: System > Sicherung ---
-        step("Navigating to System > Sicherung ...")
-        page.locator('text="System"').first.click()
-        page.wait_for_load_state("networkidle")
-        time.sleep(2)
-
-        page.locator('text="Sicherung"').first.click()
-        page.wait_for_load_state("networkidle")
-        time.sleep(2)
-
-        # --- ONLY click the "FRITZ!Box neu starten" card ---
-        # SAFETY: Exact text match. Only this card, nothing else.
-        REBOOT_CARD_TEXT = "FRITZ!Box neu starten"
-        step(f"Looking for '{REBOOT_CARD_TEXT}' card ...")
-
-        reboot_card = page.locator(f'text="{REBOOT_CARD_TEXT}"')
-        if reboot_card.count() == 0:
-            print(f"\n  [ERROR] Card '{REBOOT_CARD_TEXT}' not found.")
-            browser.close()
-            sys.exit(1)
-
-        # Safety check: verify the element text
-        card_text = reboot_card.first.text_content().strip()
-        if card_text != REBOOT_CARD_TEXT:
-            print(f"\n  [ERROR] Unexpected element text '{card_text}'. Aborting.")
-            browser.close()
-            sys.exit(1)
-
-        reboot_card.first.scroll_into_view_if_needed()
-        time.sleep(1)
-        step(f"Clicking '{REBOOT_CARD_TEXT}' ...")
-        reboot_card.first.click(force=True)
-        time.sleep(3)
-
-        # --- ONLY click the "Neu starten" confirmation button ---
-        # SAFETY: Exact text match on the confirmation button.
-        CONFIRM_TEXT = "Neu starten"
-        step(f"Looking for confirmation button '{CONFIRM_TEXT}' ...")
-
-        confirm_button = page.locator(f'button:has-text("{CONFIRM_TEXT}")')
-        if confirm_button.count() > 0 and confirm_button.first.is_visible():
-            btn_text = confirm_button.first.text_content().strip()
-            if btn_text != CONFIRM_TEXT:
-                print(f"\n  [ERROR] Unexpected button text '{btn_text}'. Aborting.")
-                browser.close()
-                sys.exit(1)
-
-            step(f"Confirming with '{CONFIRM_TEXT}' ...")
-            confirm_button.first.click(force=True)
-        else:
-            step("No confirmation dialog found. Reboot may have been triggered directly.")
-
-        time.sleep(5)
-
-        print()
-        print("  [OK] FritzBox reboot triggered successfully.")
-        print("  The router will restart now. This takes about 1-2 minutes.")
-        print()
-        browser.close()
-
-
-if __name__ == "__main__":
-    print_header()
+def run_api():
+    """Run the TR-064 API reboot."""
+    try:
+        from fritzbox_reboot_api import (
+            reboot_fritzbox,
+            generate_curl_script,
+            FRITZBOX_PASSWORD,
+            env_path,
+        )
+        from fritzconnection.core.exceptions import (
+            FritzConnectionException,
+            FritzAuthorizationError,
+        )
+    except ImportError:
+        print("\n  [ERROR] fritzconnection is not installed.")
+        print("  Run: pip install fritzconnection")
+        sys.exit(1)
 
     if not FRITZBOX_PASSWORD:
         print(f"  [ERROR] FRITZBOX_PASSWORD is not set.")
         print(f"  Please add your password to: {env_path}")
         sys.exit(1)
 
-    answer = input("  Are you sure you want to reboot your FritzBox? (yes/no): ").strip().lower()
-    if answer not in ("yes", "y"):
-        print("  Aborted.")
-        sys.exit(0)
+    try:
+        reboot_fritzbox()
 
-    print()
+        save = input("  Save reboot command as standalone curl script? (yes/no): ").strip().lower()
+        if save in ("yes", "y"):
+            print()
+            generate_curl_script()
+
+    except FritzAuthorizationError:
+        print("\n  [ERROR] Authentication failed.")
+        print("  Please check your username and password in .env")
+        sys.exit(1)
+    except FritzConnectionException as e:
+        print(f"\n  [ERROR] Connection failed: {e}")
+        print("  Make sure TR-064 is enabled in your FritzBox:")
+        print("  Heimnetz > Netzwerk > Netzwerkeinstellungen >")
+        print('  "Zugriff fuer Anwendungen zulassen"')
+        print("  (Home Network > Network > Network Settings > Allow access for applications)")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n  [ERROR] {e}")
+        sys.exit(1)
+
+
+def run_web():
+    """Run the Playwright web reboot."""
+    try:
+        from fritzbox_reboot_web import (
+            reboot_fritzbox,
+            FRITZBOX_PASSWORD,
+            env_path,
+        )
+        from playwright.sync_api import TimeoutError as PlaywrightTimeout
+    except ImportError:
+        print("\n  [ERROR] Playwright is not installed.")
+        print("  Run: pip install playwright && playwright install chromium")
+        sys.exit(1)
+
+    if not FRITZBOX_PASSWORD:
+        print(f"  [ERROR] FRITZBOX_PASSWORD is not set.")
+        print(f"  Please add your password to: {env_path}")
+        sys.exit(1)
 
     try:
         reboot_fritzbox()
@@ -164,3 +119,32 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n  [ERROR] {e}")
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Reboot your FritzBox router.",
+    )
+    parser.add_argument(
+        "--method",
+        choices=["api", "web"],
+        help="Reboot method: 'api' (TR-064) or 'web' (Playwright)",
+    )
+    args = parser.parse_args()
+
+    print_header()
+
+    method = args.method or select_method()
+
+    print()
+    answer = input("  Are you sure you want to reboot your FritzBox? (yes/no): ").strip().lower()
+    if answer not in ("yes", "y"):
+        print("  Aborted.")
+        sys.exit(0)
+
+    print()
+
+    if method == "api":
+        run_api()
+    else:
+        run_web()

@@ -1,6 +1,9 @@
 # FritzBox Restart
 
-A simple, safe automation script to reboot your AVM FRITZ!Box router via its web interface using [Playwright](https://playwright.dev/).
+A simple, safe automation tool to reboot your AVM FRITZ!Box router -- with two methods to choose from:
+
+- **API (TR-064)** -- Lightweight SOAP call, no browser needed
+- **Web (Playwright)** -- Browser automation through the FritzBox web interface
 
 > Tested with **FritzBox 7590** running **FritzOS 8.21**
 
@@ -8,28 +11,43 @@ A simple, safe automation script to reboot your AVM FRITZ!Box router via its web
 
 ## Features
 
-- Automates the full reboot flow: login, navigation, reboot trigger, and confirmation
+- **Two reboot methods** -- Choose between the fast TR-064 API or the proven Playwright web automation
 - Built-in safety confirmation before execution
-- **Strict safety guards** -- only the "FRITZ!Box neu starten" card and the "Neu starten" confirmation button are ever clicked. Factory reset, backup, restore, and all other actions are never touched.
 - Credentials stored securely in a local `.env` file (excluded from git)
 - Clean, readable CLI output with step-by-step progress
+- Main script with method selection or standalone scripts for each method
 
 ## Prerequisites
 
 - Python 3.8+
 - A FRITZ!Box router accessible on your local network
 
+### For the API method (TR-064)
+
+In your FritzBox web interface, enable TR-064 access:
+
+**Heimnetz > Netzwerk > Netzwerkeinstellungen > "Zugriff fuer Anwendungen zulassen"**
+*(Home Network > Network > Network Settings > "Allow access for applications")*
+
+### For the Web method (Playwright)
+
+Chromium must be installed via Playwright:
+
+```bash
+playwright install chromium
+```
+
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/FritzBox-Restart.git
+git clone https://github.com/arithmetic-zz/FritzBox-Restart.git
 cd FritzBox-Restart
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Install Playwright browser
+# Only needed for the Web/Playwright method:
 playwright install chromium
 ```
 
@@ -46,22 +64,71 @@ FRITZBOX_PASSWORD=your_password_here
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `FRITZBOX_PASSWORD` | Yes | -- | Your FritzBox login password |
-| `FRITZBOX_URL` | No | `http://fritz.box` | URL of your FritzBox web interface |
-| `FRITZBOX_USERNAME` | No | *(empty)* | Username (only needed if you configured multiple users) |
+| `FRITZBOX_URL` | No | `http://fritz.box` | URL or IP of your FritzBox |
+| `FRITZBOX_USERNAME` | No | *(empty)* | Username (only needed if multiple users are configured on the FritzBox) |
 
 > **Note:** The `.env` file is excluded from version control via `.gitignore`. Never commit your credentials.
 
 ## Usage
 
+### Main script (interactive method selection)
+
 ```bash
 python3 fritzbox_reboot.py
 ```
 
-### Example Output
+### Main script with CLI argument
+
+```bash
+python3 fritzbox_reboot.py --method api   # Use TR-064 API
+python3 fritzbox_reboot.py --method web   # Use Playwright
+```
+
+### Standalone scripts
+
+```bash
+python3 fritzbox_reboot_api.py   # TR-064 API directly
+python3 fritzbox_reboot_web.py   # Playwright directly
+```
+
+### Example Output (API)
 
 ```
 ====================================================
-  FritzBox Restart - Version 1.0
+  FritzBox Restart (API/TR-064) - Version 2.0
+  Tested with FritzOS: 8.21
+====================================================
+
+  Are you sure you want to reboot your FritzBox? (yes/no): y
+
+  -> Connecting to fritz.box via TR-064 ...
+  -> Connected to FRITZ!Box 7590 (FritzOS 8.21).
+  -> Sending reboot command ...
+
+  [OK] FritzBox reboot triggered successfully.
+  The router will restart now. This takes about 1-2 minutes.
+
+  Save reboot command as standalone curl script? (yes/no): y
+
+  [OK] Curl script saved to: /path/to/reboot_fritzbox.sh
+  Run it with: ./reboot_fritzbox.sh
+```
+
+### Standalone curl script
+
+After a successful API reboot, you can save the reboot command as a standalone shell script (`reboot_fritzbox.sh`). This script uses plain `curl` with TR-064 SOAP — no Python required. Your credentials are embedded inline, so you can copy it anywhere and run it directly.
+
+> **Note:** The generated script contains your password in plain text and is excluded from version control via `.gitignore`.
+
+```bash
+./reboot_fritzbox.sh
+```
+
+### Example Output (Web)
+
+```
+====================================================
+  FritzBox Restart (Web/Playwright) - Version 2.0
   Tested with FritzOS: 8.21
 ====================================================
 
@@ -70,7 +137,7 @@ python3 fritzbox_reboot.py
   -> Connecting to http://fritz.box ...
   -> Logging in ...
   -> Login successful.
-  -> Navigating to System > Sicherung ...
+  -> Navigating to System > Sicherung (Backup) ...
   -> Looking for 'FRITZ!Box neu starten' card ...
   -> Clicking 'FRITZ!Box neu starten' ...
   -> Looking for confirmation button 'Neu starten' ...
@@ -82,7 +149,13 @@ python3 fritzbox_reboot.py
 
 ## Safety
 
-This script is designed with multiple layers of protection:
+### API method
+
+The TR-064 API sends a single `Reboot` SOAP command. No other actions are possible through this code path.
+
+### Web method
+
+The Playwright script is designed with multiple layers of protection:
 
 1. **User confirmation** -- You must type `yes` or `y` before anything happens
 2. **Exact text matching** -- The script verifies the exact text content of every element before clicking
@@ -91,16 +164,20 @@ This script is designed with multiple layers of protection:
 
 ## How It Works
 
-The script uses Playwright to automate a Chromium browser and performs the following steps:
+### API method (TR-064)
+
+Uses the [fritzconnection](https://github.com/kbr/fritzconnection) library to call the `DeviceConfig1:Reboot` action via the FritzBox's TR-064 SOAP interface. Authentication uses HTTP Digest. This is the fastest and most reliable method.
+
+### Web method (Playwright)
+
+Uses Playwright to automate a Chromium browser:
 
 1. Opens the FritzBox web interface
 2. Logs in with the credentials from `.env`
-3. Navigates to **System > Sicherung**
-4. Clicks the **"FRITZ!Box neu starten"** card (with text verification)
-5. Confirms the reboot by clicking **"Neu starten"** (with text verification)
+3. Navigates to **System > Sicherung** (System > Backup)
+4. Clicks the **"FRITZ!Box neu starten"** (restart FRITZ!Box) card (with text verification)
+5. Confirms the reboot by clicking **"Neu starten"** (restart) (with text verification)
 6. Closes the browser
-
-The router typically takes 1-2 minutes to restart.
 
 ## Compatibility
 

@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 VERSION = "2.0"
-TESTED_FRITZOS = "8.21"
+TESTED_FRITZOS = "8.21 / 8.25"
 
 # Load .env from the same directory as this script
 env_path = Path(__file__).parent / ".env"

@@ -5,7 +5,7 @@ A simple, safe automation tool to reboot your AVM FRITZ!Box router -- with two m
 - **API (TR-064)** -- Lightweight SOAP call, no browser needed
 - **Web (Playwright)** -- Browser automation through the FritzBox web interface
 
-> Tested with **FritzBox 7590** running **FritzOS 8.21**
+> Tested with **FritzBox 7590** running **FritzOS 8.21 / 8.25**
 
 ---
 
@@ -96,7 +96,7 @@ python3 fritzbox_reboot_web.py   # Playwright directly
 ```
 ====================================================
   FritzBox Restart (API/TR-064) - Version 2.0
-  Tested with FritzOS: 8.21
+  Tested with FritzOS: 8.21 / 8.25
 ====================================================
 
   Are you sure you want to reboot your FritzBox? (yes/no): y
@@ -129,7 +129,7 @@ After a successful API reboot, you can save the reboot command as a standalone s
 ```
 ====================================================
   FritzBox Restart (Web/Playwright) - Version 2.0
-  Tested with FritzOS: 8.21
+  Tested with FritzOS: 8.21 / 8.25
 ====================================================
 
   Are you sure you want to reboot your FritzBox? (yes/no): y
@@ -184,6 +184,7 @@ Uses Playwright to automate a Chromium browser:
 | FritzBox Model | FritzOS Version | Status |
 |---|---|---|
 | 7590 | 8.21 | Tested |
+| 7590 | 8.25 | Tested |
 
 > Other FritzBox models with FritzOS 7.x+ may work but are untested. Contributions welcome!
 

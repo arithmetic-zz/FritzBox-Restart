@@ -16,7 +16,7 @@ import argparse
 import sys
 
 VERSION = "2.0"
-TESTED_FRITZOS = "8.21"
+TESTED_FRITZOS = "8.21 / 8.25"
 
 
 def print_header():

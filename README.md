@@ -124,6 +124,20 @@ After a successful API reboot, you can save the reboot command as a standalone s
 ./reboot_fritzbox.sh
 ```
 
+### Windows (PowerShell, no Python needed)
+
+For Windows there is a ready-to-run PowerShell script (`reboot_fritzbox.ps1`) that performs the same TR-064 reboot — no Python, no extra modules. Open it, fill in the placeholders at the top (host, port, user, password), then run it.
+
+Easiest: double-click **`reboot_fritzbox.cmd`** (it launches the PowerShell script for you).
+
+Or run directly from a terminal:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\reboot_fritzbox.ps1
+```
+
+> **Note:** Like the curl script, once you fill in your real password the `.ps1` holds it in plain text — don't commit it.
+
 ### Example Output (Web)
 
 ```

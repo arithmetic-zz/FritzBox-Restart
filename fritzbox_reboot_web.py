@@ -13,8 +13,8 @@ under any circumstances.
 Can be used standalone or called from fritzbox_reboot.py.
 
 Requirements:
-    pip install playwright python-dotenv
-    playwright install chromium
+    uv sync --locked
+    uv run playwright install chromium
 """
 
 import os
@@ -24,7 +24,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-VERSION = "2.0"
+VERSION = "3.0.0"
 TESTED_FRITZOS = "8.21 / 8.25"
 
 # Load .env from the same directory as this script

@@ -13,7 +13,7 @@ Prerequisite: In the FritzBox UI, enable application access:
 Can be used standalone or called from fritzbox_reboot.py.
 
 Requirements:
-    pip install fritzconnection python-dotenv
+    uv sync --locked
 """
 
 import os
@@ -28,7 +28,7 @@ from fritzconnection.core.exceptions import (
     FritzAuthorizationError,
 )
 
-VERSION = "2.0"
+VERSION = "3.0.0"
 TESTED_FRITZOS = "8.21 / 8.25"
 
 # Load .env from the same directory as this script

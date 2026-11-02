@@ -1,0 +1,10 @@
+[project]
+name = "fritzbox-restart"
+version = "3.0.0"
+description = "CLI tool to reboot an AVM FRITZ!Box via TR-064 or Playwright"
+requires-python = ">=3.15"
+dependencies = [
+    "fritzconnection>=1.15.1",
+    "playwright>=1.64.1",
+    "python-dotenv>=1.2.4",
+]

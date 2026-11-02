@@ -7,15 +7,15 @@ Provides a choice between two reboot methods:
   - Web (Playwright): Browser automation through the web interface
 
 Usage:
-    python3 fritzbox_reboot.py              # Interactive method selection
-    python3 fritzbox_reboot.py --method api  # Use TR-064 API directly
-    python3 fritzbox_reboot.py --method web  # Use Playwright directly
+    uv run python fritzbox_reboot.py              # Interactive method selection
+    uv run python fritzbox_reboot.py --method api  # Use TR-064 API directly
+    uv run python fritzbox_reboot.py --method web  # Use Playwright directly
 """
 
 import argparse
 import sys
 
-VERSION = "2.0"
+VERSION = "3.0.0"
 TESTED_FRITZOS = "8.21 / 8.25"
 
 
@@ -59,7 +59,7 @@ def run_api():
         )
     except ImportError:
         print("\n  [ERROR] fritzconnection is not installed.")
-        print("  Run: pip install fritzconnection")
+        print("  Run: uv sync --locked")
         sys.exit(1)
 
     if not FRITZBOX_PASSWORD:
@@ -102,7 +102,7 @@ def run_web():
         from playwright.sync_api import TimeoutError as PlaywrightTimeout
     except ImportError:
         print("\n  [ERROR] Playwright is not installed.")
-        print("  Run: pip install playwright && playwright install chromium")
+        print("  Run: uv sync --locked && uv run playwright install chromium")
         sys.exit(1)
 
     if not FRITZBOX_PASSWORD:

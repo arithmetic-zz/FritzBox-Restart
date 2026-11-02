@@ -1,5 +1,7 @@
 # FritzBox Restart
 
+Current release: [v3.0.0](https://github.com/arithmetic-zz/FritzBox-Restart/releases/tag/v3.0.0)
+
 A simple, safe automation tool to reboot your AVM FRITZ!Box router -- with two methods to choose from:
 
 - **API (TR-064)** -- Lightweight SOAP call, no browser needed
@@ -17,9 +19,18 @@ A simple, safe automation tool to reboot your AVM FRITZ!Box router -- with two m
 - Clean, readable CLI output with step-by-step progress
 - Main script with method selection or standalone scripts for each method
 
+## Release 3.0.0
+
+- Python 3.15.2 managed by uv, with an isolated project environment.
+- Reproducible dependencies in `uv.lock`, including Playwright 1.64.1 and python-dotenv 1.2.4.
+- Repository guidance migrated from `CLAUDE.md` to `AGENTS.md`.
+
+**Upgrading from 2.0:** The project now requires Python 3.15 or newer. Install uv, run `uv sync --locked`, then `uv run playwright install chromium` if you use the web method. Start the tool with `uv run python fritzbox_reboot.py`. Keep your existing local `.env` file.
+
 ## Prerequisites
 
-- Python 3.8+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (manages Python and dependencies)
+- Python 3.15.2 (installed automatically by uv)
 - A FRITZ!Box router accessible on your local network
 
 ### For the API method (TR-064)
@@ -34,7 +45,7 @@ In your FritzBox web interface, enable TR-064 access:
 Chromium must be installed via Playwright:
 
 ```bash
-playwright install chromium
+uv run playwright install chromium
 ```
 
 ## Installation
@@ -44,11 +55,19 @@ playwright install chromium
 git clone https://github.com/arithmetic-zz/FritzBox-Restart.git
 cd FritzBox-Restart
 
-# Install dependencies
-pip install -r requirements.txt
+# Install the pinned Python version and dependencies in .venv
+uv sync --locked
 
 # Only needed for the Web/Playwright method:
-playwright install chromium
+uv run playwright install chromium
+```
+
+Python is pinned in `.python-version`; `pyproject.toml` declares dependencies and `uv.lock` locks their versions. Run scripts with `uv run` to use the project environment.
+
+After changing dependencies with `uv add` or `uv remove`, regenerate the optional pip requirements file:
+
+```bash
+uv export --format requirements-txt --no-hashes --no-emit-project --output-file requirements.txt
 ```
 
 ## Configuration
@@ -74,28 +93,28 @@ FRITZBOX_PASSWORD=your_password_here
 ### Main script (interactive method selection)
 
 ```bash
-python3 fritzbox_reboot.py
+uv run python fritzbox_reboot.py
 ```
 
 ### Main script with CLI argument
 
 ```bash
-python3 fritzbox_reboot.py --method api   # Use TR-064 API
-python3 fritzbox_reboot.py --method web   # Use Playwright
+uv run python fritzbox_reboot.py --method api   # Use TR-064 API
+uv run python fritzbox_reboot.py --method web   # Use Playwright
 ```
 
 ### Standalone scripts
 
 ```bash
-python3 fritzbox_reboot_api.py   # TR-064 API directly
-python3 fritzbox_reboot_web.py   # Playwright directly
+uv run python fritzbox_reboot_api.py   # TR-064 API directly
+uv run python fritzbox_reboot_web.py   # Playwright directly
 ```
 
 ### Example Output (API)
 
 ```
 ====================================================
-  FritzBox Restart (API/TR-064) - Version 2.0
+  FritzBox Restart (API/TR-064) - Version 3.0.0
   Tested with FritzOS: 8.21 / 8.25
 ====================================================
 
@@ -128,7 +147,7 @@ After a successful API reboot, you can save the reboot command as a standalone s
 
 ```
 ====================================================
-  FritzBox Restart (Web/Playwright) - Version 2.0
+  FritzBox Restart (Web/Playwright) - Version 3.0.0
   Tested with FritzOS: 8.21 / 8.25
 ====================================================
 

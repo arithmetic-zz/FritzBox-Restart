@@ -18,6 +18,7 @@ env/
 
 # Debug artifacts
 *.png
+!/docs/readme_banner.png
 *.html
 
 # IDE

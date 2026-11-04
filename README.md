@@ -1,31 +1,14 @@
+![FritzBox Restart](docs/readme_banner.png)
+
 # FritzBox Restart
 
 Current release: [v3.0.0](https://github.com/arithmetic-zz/FritzBox-Restart/releases/tag/v3.0.0)
 
-A simple, safe automation tool to reboot your AVM FRITZ!Box router -- with two methods to choose from:
+A CLI tool to reboot your AVM FRITZ!Box router via the TR-064 API.
 
-- **API (TR-064)** -- Lightweight SOAP call, no browser needed
-- **Web (Playwright)** -- Browser automation through the FritzBox web interface
+Use the API method for regular use. It sends the reboot command directly, avoiding browser startup, page navigation, and UI waits. Playwright is available for testing the web flow or watching the steps in a visible Chromium window.
 
-> Tested with **FritzBox 7590** running **FritzOS 8.21 / 8.25**
-
----
-
-## Features
-
-- **Two reboot methods** -- Choose between the fast TR-064 API or the proven Playwright web automation
-- Built-in safety confirmation before execution
-- Credentials stored securely in a local `.env` file (excluded from git)
-- Clean, readable CLI output with step-by-step progress
-- Main script with method selection or standalone scripts for each method
-
-## Release 3.0.0
-
-- Python 3.15.2 managed by uv, with an isolated project environment.
-- Reproducible dependencies in `uv.lock`, including Playwright 1.64.1 and python-dotenv 1.2.4.
-- Repository guidance migrated from `CLAUDE.md` to `AGENTS.md`.
-
-**Upgrading from 2.0:** The project now requires Python 3.15 or newer. Install uv, run `uv sync --locked`, then `uv run playwright install chromium` if you use the web method. Start the tool with `uv run python fritzbox_reboot.py`. Keep your existing local `.env` file.
+Tested with FritzBox 7590 running FritzOS 8.21 / 8.25. Each script asks you to type `yes` or `y` before rebooting.
 
 ## Prerequisites
 
@@ -33,20 +16,10 @@ A simple, safe automation tool to reboot your AVM FRITZ!Box router -- with two m
 - Python 3.15.2 (installed automatically by uv)
 - A FRITZ!Box router accessible on your local network
 
-### For the API method (TR-064)
+Enable TR-064 access in your FritzBox web interface:
 
-In your FritzBox web interface, enable TR-064 access:
-
-**Heimnetz > Netzwerk > Netzwerkeinstellungen > "Zugriff fuer Anwendungen zulassen"**
-*(Home Network > Network > Network Settings > "Allow access for applications")*
-
-### For the Web method (Playwright)
-
-Chromium must be installed via Playwright:
-
-```bash
-uv run playwright install chromium
-```
+Heimnetz > Netzwerk > Netzwerkeinstellungen > "Zugriff für Anwendungen zulassen"
+(Home Network > Network > Network Settings > "Allow access for applications")
 
 ## Installation
 
@@ -57,33 +30,9 @@ cd FritzBox-Restart
 
 # Install the pinned Python version and dependencies in .venv
 uv sync --locked
-
-# Only needed for the Web/Playwright method:
-uv run playwright install chromium
 ```
 
 Python is pinned in `.python-version`; `pyproject.toml` declares dependencies and `uv.lock` locks their versions. Run scripts with `uv run` to use the project environment.
-
-After changing dependencies with `uv add` or `uv remove`, regenerate the optional pip requirements file:
-
-```bash
-uv export --format requirements-txt --no-hashes --no-emit-project --output-file requirements.txt
-```
-
-## Development checks
-
-GitHub Actions runs the **Syntax and lint** check for every pull request targeting
-`main` and every push to `main`. It compiles the Python files and runs basic Ruff
-correctness checks. It does not import or execute the reboot scripts, install the
-router/browser dependencies, or require credentials or router access.
-
-Run the same checks locally:
-
-```bash
-uv python install
-uv run --no-project python -m py_compile *.py
-uv tool run ruff==0.17.3 check .
-```
 
 ## Configuration
 
@@ -101,31 +50,42 @@ FRITZBOX_PASSWORD=your_password_here
 | `FRITZBOX_URL` | No | `http://fritz.box` | URL or IP of your FritzBox |
 | `FRITZBOX_USERNAME` | No | *(empty)* | Username (only needed if multiple users are configured on the FritzBox) |
 
-> **Note:** The `.env` file is excluded from version control via `.gitignore`. Never commit your credentials.
+The `.env` file stores your password in plain text. It is excluded from version control via `.gitignore`; never commit it.
 
 ## Usage
 
-### Main script (interactive method selection)
+### API (recommended)
+
+Send the reboot command via TR-064:
+
+```bash
+uv run python fritzbox_reboot.py --method api
+```
+
+Or run the API backend directly:
+
+```bash
+uv run python fritzbox_reboot_api.py
+```
+
+Run the main script without `--method` if you want to choose interactively:
 
 ```bash
 uv run python fritzbox_reboot.py
 ```
 
-### Main script with CLI argument
+### Standalone curl script
+
+After a successful API reboot, you can save the reboot command as `reboot_fritzbox.sh`. The script uses `curl` with TR-064 SOAP and runs without Python. It also asks you to type `yes` or `y` before rebooting.
+
+The generated script contains your password in plain text and is excluded from version control via `.gitignore`. Treat any copies as credentials.
 
 ```bash
-uv run python fritzbox_reboot.py --method api   # Use TR-064 API
-uv run python fritzbox_reboot.py --method web   # Use Playwright
+./reboot_fritzbox.sh
 ```
 
-### Standalone scripts
-
-```bash
-uv run python fritzbox_reboot_api.py   # TR-064 API directly
-uv run python fritzbox_reboot_web.py   # Playwright directly
-```
-
-### Example Output (API)
+<details>
+<summary>Example output (API/TR-064)</summary>
 
 ```
 ====================================================
@@ -148,17 +108,27 @@ uv run python fritzbox_reboot_web.py   # Playwright directly
   Run it with: ./reboot_fritzbox.sh
 ```
 
-### Standalone curl script
+</details>
 
-After a successful API reboot, you can save the reboot command as a standalone shell script (`reboot_fritzbox.sh`). This script uses plain `curl` with TR-064 SOAP — no Python required. Your credentials are embedded inline, so you can copy it anywhere and run it directly.
+## Playwright for tests and observation
 
-> **Note:** The generated script contains your password in plain text and is excluded from version control via `.gitignore`.
+Use this variant to test the web flow or watch the login, navigation, and reboot steps in a visible browser. It requires a German FritzBox interface and Chromium:
 
 ```bash
-./reboot_fritzbox.sh
+uv run playwright install chromium
+uv run python fritzbox_reboot.py --method web
 ```
 
-### Example Output (Web)
+You can also run the web backend directly:
+
+```bash
+uv run python fritzbox_reboot_web.py
+```
+
+This flow sends a real reboot command after you confirm with `yes` or `y`.
+
+<details>
+<summary>Example output (Playwright)</summary>
 
 ```
 ====================================================
@@ -181,37 +151,34 @@ After a successful API reboot, you can save the reboot command as a standalone s
   The router will restart now. This takes about 1-2 minutes.
 ```
 
-## Safety
+</details>
 
-### API method
-
-The TR-064 API sends a single `Reboot` SOAP command. No other actions are possible through this code path.
-
-### Web method
-
-The Playwright script is designed with multiple layers of protection:
-
-1. **User confirmation** -- You must type `yes` or `y` before anything happens
-2. **Exact text matching** -- The script verifies the exact text content of every element before clicking
-3. **Abort on mismatch** -- If any element text doesn't match expectations, the script aborts immediately
-4. **No destructive actions** -- Factory reset, backup overwrite, and restore buttons are never interacted with
-
-## How It Works
+## How it works and safety checks
 
 ### API method (TR-064)
 
-Uses the [fritzconnection](https://github.com/kbr/fritzconnection) library to call the `DeviceConfig1:Reboot` action via the FritzBox's TR-064 SOAP interface. Authentication uses HTTP Digest. This is the fastest and most reliable method.
+The API backend uses [fritzconnection](https://github.com/kbr/fritzconnection) to call `DeviceConfig1:Reboot` via TR-064 SOAP with HTTP Digest authentication.
+
+The API backend calls only this reboot action.
 
 ### Web method (Playwright)
 
-Uses Playwright to automate a Chromium browser:
+The web backend uses Playwright to:
 
-1. Opens the FritzBox web interface
-2. Logs in with the credentials from `.env`
-3. Navigates to **System > Sicherung** (System > Backup)
-4. Clicks the **"FRITZ!Box neu starten"** (restart FRITZ!Box) card (with text verification)
-5. Confirms the reboot by clicking **"Neu starten"** (restart) (with text verification)
-6. Closes the browser
+1. Open the FritzBox web interface
+2. Log in with the credentials from `.env`
+3. Navigate to System > Sicherung (System > Backup)
+4. Check and click the "FRITZ!Box neu starten" (restart FRITZ!Box) card
+5. Check and click "Neu starten" (restart), if the confirmation button is present and visible
+6. Close the browser
+
+Before clicking the reboot card, the web backend checks that its text is exactly
+`FRITZ!Box neu starten`. If a confirmation button is present and visible, it checks
+for exactly `Neu starten` before clicking. It aborts if the reboot card is missing
+or either text check fails. If no confirmation button is found, it reports that
+the reboot may have been triggered directly.
+
+The script does not click factory-reset, backup, or restore controls.
 
 ## Compatibility
 
@@ -220,8 +187,41 @@ Uses Playwright to automate a Chromium browser:
 | 7590 | 8.21 | Tested |
 | 7590 | 8.25 | Tested |
 
-> Other FritzBox models with FritzOS 7.x+ may work but are untested. Contributions welcome!
+Other FritzBox models with FritzOS 7.x+ are untested.
+
+## Development
+
+### Dependencies
+
+After changing dependencies with `uv add` or `uv remove`, regenerate the optional pip requirements file:
+
+```bash
+uv export --format requirements-txt --no-hashes --no-emit-project --output-file requirements.txt
+```
+
+### Checks
+
+GitHub Actions runs the `Syntax and lint` check for every pull request targeting
+`main` and every push to `main`. It compiles the Python files and runs basic Ruff
+correctness checks. It does not import or execute the reboot scripts, install the
+router/browser dependencies, or require credentials or router access.
+
+Run the same checks locally:
+
+```bash
+uv python install
+uv run --no-project python -m py_compile *.py
+uv tool run ruff==0.17.3 check .
+```
+
+## Release 3.0.0
+
+- Python 3.15.2 managed by uv, with an isolated project environment.
+- Reproducible dependencies in `uv.lock`, including Playwright 1.64.1 and python-dotenv 1.2.4.
+- Repository guidance migrated from `CLAUDE.md` to `AGENTS.md`.
+
+If you're upgrading from 2.0, the project now requires Python 3.15 or newer. Install uv and run `uv sync --locked`. Start the tool with `uv run python fritzbox_reboot.py --method api`. Keep your existing local `.env` file. Install Chromium only if you want to use Playwright.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+Licensed under the [MIT License](LICENSE).

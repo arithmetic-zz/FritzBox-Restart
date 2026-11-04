@@ -70,6 +70,21 @@ After changing dependencies with `uv add` or `uv remove`, regenerate the optiona
 uv export --format requirements-txt --no-hashes --no-emit-project --output-file requirements.txt
 ```
 
+## Development checks
+
+GitHub Actions runs the **Syntax and lint** check for every pull request targeting
+`main` and every push to `main`. It compiles the Python files and runs basic Ruff
+correctness checks. It does not import or execute the reboot scripts, install the
+router/browser dependencies, or require credentials or router access.
+
+Run the same checks locally:
+
+```bash
+uv python install
+uv run --no-project python -m py_compile *.py
+uv tool run ruff==0.17.3 check .
+```
+
 ## Configuration
 
 Create a `.env` file in the project root with your FritzBox credentials:

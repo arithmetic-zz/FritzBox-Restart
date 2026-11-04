@@ -8,3 +8,7 @@ dependencies = [
     "playwright>=1.64.1",
     "python-dotenv>=1.2.4",
 ]
+
+[tool.ruff.lint]
+# Basic correctness: syntax errors, invalid comparisons, and undefined names.
+select = ["E9", "F63", "F7", "F82"]

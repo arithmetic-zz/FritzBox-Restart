@@ -202,9 +202,11 @@ uv export --format requirements-txt --no-hashes --no-emit-project --output-file 
 ### Checks
 
 GitHub Actions runs the `Syntax and lint` check for every pull request targeting
-`main` and every push to `main`. It compiles the Python files and runs basic Ruff
-correctness checks. It does not import or execute the reboot scripts, install the
-router/browser dependencies, or require credentials or router access.
+`main` and every push to `main`. For changes limited to Markdown, images, and
+`.gitignore`, it skips Python setup and checks. Otherwise, it compiles the Python
+files and runs basic Ruff correctness checks. Manual runs always perform these
+checks. It does not import or execute the reboot scripts, install the router/browser
+dependencies, or require credentials or router access.
 
 Run the same checks locally:
 

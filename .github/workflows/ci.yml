@@ -20,15 +20,46 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+      # Keep the required check present even for documentation-only changes.
+      - name: Detect changes requiring Python checks
+        id: changes
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          if [[ "$CI_EVENT_NAME" == "workflow_dispatch" || -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --name-only --no-renames -z "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
+          required=false
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              *.md|*.png|*.jpg|*.jpeg|*.gif|*.svg|*.webp|.gitignore) ;;
+              *) required=true; break ;;
+            esac
+          done < "$RUNNER_TEMP/changed-files"
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          if [[ "$required" == "false" ]]; then
+            echo "Documentation/images only; skipping Python setup and checks." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Set up uv
+        if: steps.changes.outputs.required == 'true'
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: "0.13.6"
           enable-cache: false
       - name: Install Python from .python-version
+        if: steps.changes.outputs.required == 'true'
         run: uv python install
       # Compile only: never import or run the reboot scripts, or load .env.
       - name: Check Python syntax
+        if: steps.changes.outputs.required == 'true'
         run: uv run --no-project python -m py_compile *.py
       - name: Lint Python
+        if: steps.changes.outputs.required == 'true'
         run: uv tool run ruff==0.17.3 check .
